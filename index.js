@@ -27,7 +27,6 @@ app.get("/teste", async (req, res) => {
 
     const data = await response.json();
 
-    // 🔥 DEVOLVE SÓ TEXTO
     const texto = data.output?.[0]?.content?.[0]?.text || "sem resposta";
 
     res.json({ resposta: texto });
@@ -61,7 +60,22 @@ app.post("/analisar", async (req, res) => {
             content: [
               {
                 type: "input_text",
-                text: "Identifica os alimentos presentes na imagem e devolve apenas uma lista simples separada por vírgulas.",
+                text: `
+Analisa a imagem e devolve APENAS JSON no formato:
+
+[
+  {
+    "nome": "alimento",
+    "calorias": numero
+  }
+]
+
+Regras:
+- identifica TODOS os alimentos
+- calorias por porção visível
+- sem texto extra
+- só JSON válido
+`
               },
               {
                 type: "input_image",
@@ -75,12 +89,26 @@ app.post("/analisar", async (req, res) => {
 
     const data = await response.json();
 
-    // 🔥 EXTRAIR SÓ O TEXTO LIMPO
-    const texto = data.output?.[0]?.content?.[0]?.text || "não identificado";
+    const texto = data.output?.[0]?.content?.[0]?.text || "[]";
 
-    // 🔥 DEVOLVER LIMPO
+    let alimentos = [];
+
+    try {
+      alimentos = JSON.parse(texto);
+    } catch (e) {
+      console.error("Erro a fazer parse do JSON:", texto);
+      alimentos = [{ nome: "erro", calorias: 0 }];
+    }
+
+    // 🔥 CALCULAR TOTAL
+    const total = alimentos.reduce((acc, item) => {
+      return acc + (Number(item.calorias) || 0);
+    }, 0);
+
+    // 🔥 RESPOSTA FINAL
     res.json({
-      alimentos: texto
+      alimentos,
+      total_calorias: total
     });
 
   } catch (error) {
