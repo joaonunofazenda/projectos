@@ -13,10 +13,6 @@ app.get("/", (req, res) => {
 // 🔹 TESTE OPENAI (para browser)
 app.get("/teste", async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: "OPENAI_API_KEY não definida" });
-    }
-
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -31,11 +27,11 @@ app.get("/teste", async (req, res) => {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
+    // 🔥 DEVOLVE SÓ TEXTO
+    const texto = data.output?.[0]?.content?.[0]?.text || "sem resposta";
 
-    res.json(data);
+    res.json({ resposta: texto });
+
   } catch (error) {
     console.error("ERRO TESTE:", error);
     res.status(500).json({ error: error.message });
@@ -45,10 +41,6 @@ app.get("/teste", async (req, res) => {
 // 🔹 API PRINCIPAL
 app.post("/analisar", async (req, res) => {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: "OPENAI_API_KEY não definida" });
-    }
-
     const { image } = req.body;
 
     if (!image) {
@@ -69,7 +61,7 @@ app.post("/analisar", async (req, res) => {
             content: [
               {
                 type: "input_text",
-                text: "Identifica os alimentos presentes na imagem e devolve em JSON.",
+                text: "Identifica os alimentos presentes na imagem e devolve apenas uma lista simples separada por vírgulas.",
               },
               {
                 type: "input_image",
@@ -83,14 +75,17 @@ app.post("/analisar", async (req, res) => {
 
     const data = await response.json();
 
-    if (!response.ok) {
-      return res.status(response.status).json(data);
-    }
+    // 🔥 EXTRAIR SÓ O TEXTO LIMPO
+    const texto = data.output?.[0]?.content?.[0]?.text || "não identificado";
 
-    res.json(data);
+    // 🔥 DEVOLVER LIMPO
+    res.json({
+      alimentos: texto
+    });
+
   } catch (error) {
     console.error("ERRO BACKEND:", error);
-    res.status(500).json({ error: "erro backend", detalhe: error.message });
+    res.status(500).json({ error: "erro backend" });
   }
 });
 
