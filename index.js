@@ -3,12 +3,19 @@ import fetch from "node-fetch";
 
 const app = express();
 
-// 🔥 IMPORTANTE (evita erros com imagens grandes)
 app.use(express.json({ limit: "10mb" }));
 
-// 🔥 ROTA TESTE (para veres se está online)
+// 🔥 TESTE
 app.get("/", (req, res) => {
   res.send("NutriScan backend OK 🚀");
+});
+
+// 🔥 DEBUG
+app.get("/debug", (req, res) => {
+  res.json({
+    apiKeyExiste: !!process.env.OPENAI_API_KEY,
+    port: process.env.PORT
+  });
 });
 
 // 🔥 ROTA PRINCIPAL
@@ -20,10 +27,14 @@ app.post("/analisar", async (req, res) => {
       return res.status(400).json({ error: "Imagem não enviada" });
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: "API KEY não configurada" });
+    }
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -56,13 +67,9 @@ app.post("/analisar", async (req, res) => {
   }
 });
 
-// 🔥 PORTA PARA RAILWAY
+// 🔥 CRÍTICO PARA RAILWAY
 const PORT = process.env.PORT || 3000;
 
-// 🔥 IMPORTANTE PARA RAILWAY (bind correto)
 app.listen(PORT, "0.0.0.0", () => {
   console.log("Servidor a correr na porta " + PORT);
 });
-
-// 🔥 FORÇAR NOVO DEPLOY (não apagues)
-console.log("deploy novo 🚀");
