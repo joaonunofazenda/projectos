@@ -1,5 +1,5 @@
 import express from "express";
-import fetch from "node-fetch";
+const response = await fetch("https://api.openai.com/v1/responses", {
 
 const app = express();
 
