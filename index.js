@@ -2,11 +2,11 @@ import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
-// 🔥 ROTA TESTE (OBRIGATÓRIA)
+// 🔥 ROTA TESTE (para veres se está online)
 app.get("/", (req, res) => {
-  res.send("OK");
+  res.send("NutriScan backend OK 🚀");
 });
 
 // 🔥 ROTA PRINCIPAL
@@ -15,7 +15,7 @@ app.post("/analisar", async (req, res) => {
     const { image } = req.body;
 
     if (!image) {
-      return res.status(400).json({ error: "imagem em falta" });
+      return res.status(400).json({ error: "Imagem não enviada" });
     }
 
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -30,8 +30,14 @@ app.post("/analisar", async (req, res) => {
           {
             role: "user",
             content: [
-              { type: "input_text", text: "Identifica alimentos." },
-              { type: "input_image", image_url: image }
+              {
+                type: "input_text",
+                text: "Identifica os alimentos presentes na imagem e devolve em JSON."
+              },
+              {
+                type: "input_image",
+                image_url: image
+              }
             ]
           }
         ]
@@ -39,18 +45,18 @@ app.post("/analisar", async (req, res) => {
     });
 
     const data = await response.json();
+
     res.json(data);
 
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error("ERRO BACKEND:", error);
     res.status(500).json({ error: "erro backend" });
   }
 });
 
-// 🔥 PORTA RAILWAY
+// 🔥 IMPORTANTE PARA RAILWAY
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log("Servidor a correr na porta " + PORT);
- });
-
+});
