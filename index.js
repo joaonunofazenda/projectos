@@ -2,6 +2,8 @@ import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
+
+// 🔥 IMPORTANTE (evita erros com imagens grandes)
 app.use(express.json({ limit: "10mb" }));
 
 // 🔥 ROTA TESTE (para veres se está online)
@@ -44,13 +46,6 @@ app.post("/analisar", async (req, res) => {
       })
     });
 
-    // 🔥 VALIDAÇÃO DA RESPOSTA (IMPORTANTE)
-    if (!response.ok) {
-      const erroTexto = await response.text();
-      console.error("Erro OpenAI:", erroTexto);
-      return res.status(500).json({ error: "Erro na API OpenAI" });
-    }
-
     const data = await response.json();
 
     res.json(data);
@@ -61,9 +56,13 @@ app.post("/analisar", async (req, res) => {
   }
 });
 
-// 🔥 PORTA CORRETA PARA RAILWAY
+// 🔥 PORTA PARA RAILWAY
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+// 🔥 IMPORTANTE PARA RAILWAY (bind correto)
+app.listen(PORT, "0.0.0.0", () => {
   console.log("Servidor a correr na porta " + PORT);
 });
+
+// 🔥 FORÇAR NOVO DEPLOY (não apagues)
+console.log("deploy novo 🚀");
