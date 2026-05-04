@@ -44,6 +44,13 @@ app.post("/analisar", async (req, res) => {
       })
     });
 
+    // 🔥 VALIDAÇÃO DA RESPOSTA (IMPORTANTE)
+    if (!response.ok) {
+      const erroTexto = await response.text();
+      console.error("Erro OpenAI:", erroTexto);
+      return res.status(500).json({ error: "Erro na API OpenAI" });
+    }
+
     const data = await response.json();
 
     res.json(data);
@@ -54,12 +61,9 @@ app.post("/analisar", async (req, res) => {
   }
 });
 
-// 🔥 IMPORTANTE PARA RAILWAY
+// 🔥 PORTA CORRETA PARA RAILWAY
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log("Servidor a correr na porta " + PORT);
-
-
-  // redeploy
 });
