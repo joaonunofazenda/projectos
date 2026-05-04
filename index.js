@@ -13,6 +13,10 @@ app.get("/", (req, res) => {
 // 🔹 TESTE OPENAI (para browser)
 app.get("/teste", async (req, res) => {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: "OPENAI_API_KEY não definida" });
+    }
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -27,6 +31,10 @@ app.get("/teste", async (req, res) => {
 
     const data = await response.json();
 
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
     res.json(data);
   } catch (error) {
     console.error("ERRO TESTE:", error);
@@ -37,6 +45,10 @@ app.get("/teste", async (req, res) => {
 // 🔹 API PRINCIPAL
 app.post("/analisar", async (req, res) => {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: "OPENAI_API_KEY não definida" });
+    }
+
     const { image } = req.body;
 
     if (!image) {
@@ -71,10 +83,14 @@ app.post("/analisar", async (req, res) => {
 
     const data = await response.json();
 
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
     res.json(data);
   } catch (error) {
     console.error("ERRO BACKEND:", error);
-    res.status(500).json({ error: "erro backend" });
+    res.status(500).json({ error: "erro backend", detalhe: error.message });
   }
 });
 
