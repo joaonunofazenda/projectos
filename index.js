@@ -2,7 +2,7 @@ import express from "express";
 
 const app = express();
 
-// MUITO IMPORTANTE
+// 🔥 MUITO IMPORTANTE
 app.use(express.json({ limit: "10mb" }));
 
 // 🔹 TESTE ROOT
@@ -10,7 +10,7 @@ app.get("/", (req, res) => {
   res.send("NutriScan backend OK 🚀");
 });
 
-// 🔹 TESTE OPENAI (para browser)
+// 🔹 TESTE OPENAI
 app.get("/teste", async (req, res) => {
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -26,7 +26,6 @@ app.get("/teste", async (req, res) => {
     });
 
     const data = await response.json();
-
     const texto = data.output?.[0]?.content?.[0]?.text || "sem resposta";
 
     res.json({ resposta: texto });
@@ -61,7 +60,7 @@ app.post("/analisar", async (req, res) => {
               {
                 type: "input_text",
                 text: `
-Analisa a imagem e devolve APENAS JSON no formato:
+Analisa a imagem e devolve APENAS JSON puro (sem texto antes ou depois):
 
 [
   {
@@ -71,10 +70,11 @@ Analisa a imagem e devolve APENAS JSON no formato:
 ]
 
 Regras:
-- identifica TODOS os alimentos
-- calorias por porção visível
-- sem texto extra
-- só JSON válido
+- identifica TODOS os alimentos visíveis
+- calorias aproximadas por porção visível
+- NÃO escrever explicações
+- NÃO usar markdown
+- devolver apenas JSON válido
 `
               },
               {
@@ -89,15 +89,20 @@ Regras:
 
     const data = await response.json();
 
-    const texto = data.output?.[0]?.content?.[0]?.text || "[]";
+    let texto = data.output?.[0]?.content?.[0]?.text || "[]";
+
+    // 🔥 LIMPAR RESPOSTA (caso venha com ```json ou texto extra)
+    texto = texto.replace(/```json/g, "")
+                 .replace(/```/g, "")
+                 .trim();
 
     let alimentos = [];
 
     try {
       alimentos = JSON.parse(texto);
     } catch (e) {
-      console.error("Erro a fazer parse do JSON:", texto);
-      alimentos = [{ nome: "erro", calorias: 0 }];
+      console.error("Erro parse JSON:", texto);
+      alimentos = [{ nome: "desconhecido", calorias: 0 }];
     }
 
     // 🔥 CALCULAR TOTAL
@@ -105,7 +110,6 @@ Regras:
       return acc + (Number(item.calorias) || 0);
     }, 0);
 
-    // 🔥 RESPOSTA FINAL
     res.json({
       alimentos,
       total_calorias: total
@@ -117,7 +121,7 @@ Regras:
   }
 });
 
-// 🔥 PORTA (ESSENCIAL PARA RAILWAY)
+// 🔥 PORTA (RAILWAY)
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
