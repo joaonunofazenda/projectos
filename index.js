@@ -60,21 +60,24 @@ app.post("/analisar", async (req, res) => {
               {
                 type: "input_text",
                 text: `
-Analisa a imagem e devolve APENAS JSON puro (sem texto antes ou depois):
+Analisa a imagem e devolve APENAS JSON puro:
 
 [
   {
     "nome": "alimento",
-    "calorias": numero
+    "percentagem": numero_0_a_100,
+    "calorias_100g": numero
   }
 ]
 
 Regras:
-- identifica TODOS os alimentos visíveis
-- calorias aproximadas por porção visível
-- NÃO escrever explicações
-- NÃO usar markdown
-- devolver apenas JSON válido
+- identificar TODOS os alimentos
+- percentagem relativa do prato (estimativa visual)
+- calorias por 100g (valor médio)
+- soma das percentagens ~100
+- sem texto extra
+- sem markdown
+- só JSON válido
 `
               },
               {
@@ -91,7 +94,6 @@ Regras:
 
     let texto = data.output?.[0]?.content?.[0]?.text || "[]";
 
-    // 🔥 LIMPAR RESPOSTA (caso venha com ```json ou texto extra)
     texto = texto.replace(/```json/g, "")
                  .replace(/```/g, "")
                  .trim();
@@ -102,17 +104,36 @@ Regras:
       alimentos = JSON.parse(texto);
     } catch (e) {
       console.error("Erro parse JSON:", texto);
-      alimentos = [{ nome: "desconhecido", calorias: 0 }];
+      alimentos = [];
     }
 
-    // 🔥 CALCULAR TOTAL
-    const total = alimentos.reduce((acc, item) => {
-      return acc + (Number(item.calorias) || 0);
-    }, 0);
+    // 🔥 PESO TOTAL FIXO BASE (ajustado depois no Android)
+    const pesoTotalEstimado = 400; // gramas (base média prato)
+
+    let totalCalorias = 0;
+
+    const alimentosCompletos = alimentos.map(item => {
+
+      const percent = Number(item.percentagem) || 0;
+      const kcal100g = Number(item.calorias_100g) || 0;
+
+      const peso = (pesoTotalEstimado * percent) / 100;
+      const calorias = Math.round((peso * kcal100g) / 100);
+
+      totalCalorias += calorias;
+
+      return {
+        nome: item.nome,
+        percentagem: percent,
+        peso: Math.round(peso),
+        calorias: calorias
+      };
+    });
 
     res.json({
-      alimentos,
-      total_calorias: total
+      alimentos: alimentosCompletos,
+      total_calorias: totalCalorias,
+      peso_total: pesoTotalEstimado
     });
 
   } catch (error) {
@@ -121,7 +142,7 @@ Regras:
   }
 });
 
-// 🔥 PORTA (RAILWAY)
+// 🔥 PORTA
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
